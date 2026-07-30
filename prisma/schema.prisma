@@ -4,10 +4,43 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
+}
+
+enum UserType {
+  USER
+  ADMIN
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique @db.VarChar(255)
+  email           String    @unique @db.VarChar(255)
+  password        String    @db.Text
+  profile         String?   @db.VarChar(255)
+  type            UserType  @default(USER)
+  phone           String?   @db.VarChar(20)
+  address         String?   @db.VarChar(255)
+  dob             DateTime? @db.Date
+  createUserId    Int       @map("create_user_id")
+  updatedUserId   Int       @map("updated_user_id")
+  deletedUserId   Int?      @map("deleted_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  @@map("users")
+}
+
+model PasswordReset {
+  email           String     @db.VarChar(255)
+  token           String     @unique @db.VarChar(255)
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  @@id([email, token])
+  @@map("password_resets")
 }
