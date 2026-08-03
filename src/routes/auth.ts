@@ -6,6 +6,7 @@ import {
   forgotPassword,
   resetPassword,
   changePassword,
+  getMeUser,
 } from "../controllers/auth";
 import { validate } from "../middlewares/validate";
 import {
@@ -30,5 +31,12 @@ router.post(
   forgotPassword,
 );
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
-router.post("/change-password", authenticate, validate(changePasswordSchema), changePassword);
+router.post(
+  "/change-password",
+  authenticate,
+  validate(changePasswordSchema),
+  changePassword,
+);
+router.get("/me", authenticate, getMeUser);
+
 export default router;

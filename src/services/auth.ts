@@ -190,7 +190,7 @@ export const reset = async (token: string, data: ResetPasswordInput) => {
     throw new AppError("Invalid or expired password reset token.", 400);
   }
 
-  const hashedPassword = await bcrypt.hash(password, 12);
+  const hashedPassword = await bcrypt.hash(password, 10);
 
   await prisma.user.update({
     where: { email: record.email },
@@ -222,7 +222,7 @@ export const change = async (userId: number, data: ChangePasswordInput) => {
     throw new AppError("Current password is incorrect", 401);
   }
 
-  const hashedPassword = await bcrypt.hash(newPassword, 12);
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   await prisma.user.update({
     where: { id: userId },
@@ -230,4 +230,17 @@ export const change = async (userId: number, data: ChangePasswordInput) => {
   });
 
   return { message: "Password changed successfully" };
+};
+
+// get me
+export const getMe = async (userId: number) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new AppError("User not found.", 404);
+  }
+
+  return UserDto.plainToInstance(user);
 };

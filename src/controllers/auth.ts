@@ -1,5 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { register, login, forgot, reset, change } from "../services/auth";
+import {
+  register,
+  login,
+  forgot,
+  reset,
+  change,
+  getMe,
+} from "../services/auth";
 import { AuthRequest } from "../middlewares/auth";
 
 export const registerUser = async (
@@ -123,4 +130,18 @@ export const changePassword = async (
   } catch (error) {
     next(error);
   }
-}
+};
+
+// get me
+export const getMeUser = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const user = await getMe(req.user?.id!);
+    return res.status(200).json({ status: "success", data: user });
+  } catch (error) {
+    next(error);
+  }
+};
