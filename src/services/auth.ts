@@ -6,14 +6,31 @@ import { UserDto } from "../dto/user";
 import { AppError } from "../utils/appError";
 import { UserType } from "@prisma/client";
 import { transporter } from "../config/mailer";
-import fs from "fs";
-import path from "path";
 import {
   RegisterInput,
   LoginInput,
   ForgotPasswordInput,
   ResetPasswordInput,
+  ChangePasswordInput,
 } from "../validators/auth";
+
+export const renderForgotPasswordEmail = (resetUrl: string): string => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>Password Reset Request</title>
+    </head>
+    <body>
+      <h2>Password Reset Request</h2>
+      <p>You requested a password reset. Please click the link below to set a new password:</p>
+      <p><a href="${resetUrl}" target="_blank">Reset Password</a></p>
+      <p>If you did not request this, please ignore this email.</p>
+    </body>
+    </html>
+      `.trim();
+};
 
 // register
 export const register = async (data: RegisterInput) => {
@@ -57,9 +74,14 @@ export const register = async (data: RegisterInput) => {
 export const login = async (data: LoginInput) => {
   const { email, password, rememberMe } = data;
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({
+    where: {
+      email,
+      deletedAt: null,
+    },
+  });
   if (!user) {
-    throw new AppError("User does not exist with this email", 401);
+    throw new AppError("Invalid email or password", 401);
   }
 
   const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -91,7 +113,7 @@ export const forgot = async (data: ForgotPasswordInput) => {
   });
 
   if (!user) {
-    throw new AppError("User not found with this email Address.", 404);
+    return { email };
   }
 
   const jwtSecret = process.env.JWT_SECRET;
@@ -119,10 +141,8 @@ export const forgot = async (data: ForgotPasswordInput) => {
 
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const resetUrl = `${frontendUrl}/user/reset-password?token=${resetToken}`;
-  const templatePath = path.join(__dirname, "../templates/forgotPassword.html");
-  let htmlContent = fs.readFileSync(templatePath, "utf8");
-  htmlContent = htmlContent.replace("{{resetUrl}}", resetUrl);
 
+  const htmlContent = renderForgotPasswordEmail(resetUrl);
   if (process.env.ENV === "development") {
     console.log("Password Reset Link for Testing ->", resetUrl);
   }
@@ -136,7 +156,7 @@ export const forgot = async (data: ForgotPasswordInput) => {
 
   await transporter.sendMail(mailerOptions);
 
-  return { email, resetToken };
+  return { email };
 };
 
 // reset
@@ -182,4 +202,32 @@ export const reset = async (token: string, data: ResetPasswordInput) => {
   });
 
   return { email: record.email };
+};
+
+// change password
+export const change = async (userId: number, data: ChangePasswordInput) => {
+  const { currentPassword, newPassword } = data;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new AppError("User not found.", 404);
+  }
+
+  const isCurrentPasswordCorrect = await bcrypt.compare(
+    currentPassword,
+    user.password,
+  );
+
+  if (!isCurrentPasswordCorrect) {
+    throw new AppError("Current password is incorrect", 401);
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { password: hashedPassword },
+  });
+
+  return { message: "Password changed successfully" };
 };

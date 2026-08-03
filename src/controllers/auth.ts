@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { register, login, forgot, reset } from "../services/auth";
+import { register, login, forgot, reset, change } from "../services/auth";
+import { AuthRequest } from "../middlewares/auth";
 
 export const registerUser = async (
   req: Request,
@@ -46,11 +47,7 @@ export const loginUser = async (
 };
 
 // synchronous, try/catch no need
-export const logoutUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const logoutUser = (req: Request, res: Response, next: NextFunction) => {
   res.clearCookie("token", {
     httpOnly: true,
     secure: process.env.ENV === "production",
@@ -108,3 +105,22 @@ export const resetPassword = async (
     next(error);
   }
 };
+
+// change password
+export const changePassword = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user?.id;
+    await change(userId!, req.body);
+
+    return res.status(200).json({
+      status: "success",
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+}
