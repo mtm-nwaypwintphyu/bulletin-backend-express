@@ -1,7 +1,7 @@
 import prisma from "../config/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import crypto from "crypto";
+
 import { UserDto } from "../dto/user";
 import { AppError } from "../utils/appError";
 import { UserType } from "@prisma/client";
@@ -59,7 +59,7 @@ export const login = async (data: LoginInput) => {
 
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
-    throw new AppError("User not exists with this email", 401);
+    throw new AppError("User does not exist with this email", 401);
   }
 
   const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -74,7 +74,7 @@ export const login = async (data: LoginInput) => {
   }
 
   const token = jwt.sign({ id: user.id, type: user.type }, jwtSecret, {
-    expiresIn: rememberMe ? ("30d" as any) : ("1d" as any),
+    expiresIn: rememberMe ? "30d" : "1d",
   });
 
   const userDto = UserDto.plainToInstance(user);
@@ -94,7 +94,21 @@ export const forgot = async (data: ForgotPasswordInput) => {
     throw new AppError("User not found with this email Address.", 404);
   }
 
-  const resetToken = crypto.randomBytes(32).toString("hex");
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new AppError("JWT_SECRET is not configured", 500);
+  }
+
+  const dynamicSecret = jwtSecret + user.password;
+  const resetToken = jwt.sign(
+    { id: user.id, email: user.email },
+    dynamicSecret,
+    {
+      expiresIn: "10m",
+    },
+  );
+
+  await prisma.passwordReset.deleteMany({ where: { email } });
 
   await prisma.passwordReset.create({
     data: {
@@ -103,7 +117,8 @@ export const forgot = async (data: ForgotPasswordInput) => {
     },
   });
 
-  const resetUrl = `http://localhost:3000/auth/api/reset?token=${resetToken}`;
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const resetUrl = `${frontendUrl}/user/reset-password?token=${resetToken}`;
   const templatePath = path.join(__dirname, "../templates/forgotPassword.html");
   let htmlContent = fs.readFileSync(templatePath, "utf8");
   htmlContent = htmlContent.replace("{{resetUrl}}", resetUrl);
@@ -131,6 +146,27 @@ export const reset = async (token: string, data: ResetPasswordInput) => {
   const record = await prisma.passwordReset.findFirst({ where: { token } });
 
   if (!record) {
+    throw new AppError("Invalid or expired password reset token.", 400);
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { email: record.email },
+  });
+
+  if (!user) {
+    throw new AppError("User not found.", 404);
+  }
+
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret) {
+    throw new AppError("JWT_SECRET is not configured", 500);
+  }
+
+  const dynamicSecret = jwtSecret + user.password;
+
+  try {
+    jwt.verify(token, dynamicSecret);
+  } catch (error) {
     throw new AppError("Invalid or expired password reset token.", 400);
   }
 
