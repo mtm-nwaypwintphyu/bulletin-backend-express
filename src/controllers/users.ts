@@ -4,7 +4,6 @@ import { AuthRequest } from "../middlewares/auth";
 import { AppError } from "../utils/appError";
 import { paginationSchema } from "../validators/user";
 import { sendResponse } from "../utils/response";
-import { uploadToS3 } from "../utils/s3Upload";
 
 // get user
 export const getUsers = async (
@@ -77,18 +76,7 @@ export const updateUser = async (
       throw new AppError("Unauthorized", 401);
     }
 
-    let profileUrl = req.body.profile || null;
-
-    if (req.file) {
-      profileUrl = await uploadToS3(req.file);
-    }
-
-    const data = {
-      ...req.body,
-      profile: profileUrl,
-    };
-
-    const result = await update(Number(id), data, currentUser);
+    const result = await update(Number(id), req.body, req.file, currentUser);
     return sendResponse(res, 200, { user: result });
   } catch (error) {
     next(error);

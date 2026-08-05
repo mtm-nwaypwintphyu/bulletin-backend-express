@@ -102,6 +102,7 @@ export const create = async (
 export const update = async (
   id: number,
   data: UpdateUserInput,
+  file: Express.Multer.File | undefined,
   currentUser: { id: number; type: UserType },
 ) => {
   const existingUser = await prisma.user.findFirst({
@@ -147,12 +148,18 @@ export const update = async (
     formattedDob = data.dob ? new Date(data.dob) : null;
   }
 
+  let profileUrl: string | null | undefined;
+  if (file) {
+    profileUrl = await uploadToS3(file);
+  } else if (data.profile !== undefined) {
+    profileUrl = data.profile || null;
+  }
+
   const updatedUser = await prisma.user.update({
     where: { id },
     data: {
       ...(data.name && { name: data.name }),
-      ...(data.profile !== undefined &&
-        data.profile !== null && { profile: data.profile }),
+      ...(profileUrl !== undefined && { profile: profileUrl }),
       ...(data.phone !== undefined &&
         data.phone !== null && { phone: data.phone }),
       ...(data.address !== undefined &&
