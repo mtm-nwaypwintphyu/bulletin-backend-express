@@ -1,10 +1,10 @@
-import { User } from "@prisma/client";
+import { User, UserType } from "@prisma/client";
 export class UserDto {
   id: number;
   name: string;
   email: string;
   profile: string | null;
-  type: string;
+  type: UserType;
   phone: string | null;
   address: string | null;
   dob: Date | null;
