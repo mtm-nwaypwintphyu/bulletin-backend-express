@@ -8,6 +8,7 @@ import {
   UpdateUserInput,
   PaginationInput,
 } from "../validators/user";
+import { uploadToS3 } from "../utils/s3Upload";
 
 // get all users
 export const getAll = async (
@@ -48,6 +49,7 @@ export const getAll = async (
 // create user
 export const create = async (
   data: CreateUserInput,
+  file: Express.Multer.File | undefined,
   currentUser: { id: number; type: UserType },
 ) => {
   const { name, email, password, profile, phone, address, dob, type } = data;
@@ -70,6 +72,12 @@ export const create = async (
     throw new AppError("Name already exists", 400);
   }
 
+  let profileUrl = data.profile || null;
+
+  if (file) {
+    profileUrl = await uploadToS3(file);
+  }
+
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const newUser = await prisma.user.create({
@@ -77,7 +85,7 @@ export const create = async (
       name,
       email,
       password: hashedPassword,
-      profile: profile || null,
+      profile: profileUrl || null,
       phone: phone || null,
       address: address || null,
       dob: dob ? new Date(dob) : null,
@@ -96,7 +104,7 @@ export const update = async (
   data: UpdateUserInput,
   currentUser: { id: number; type: UserType },
 ) => {
-  const existingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findFirst({
     where: { id, deletedAt: null },
   });
 
@@ -143,9 +151,12 @@ export const update = async (
     where: { id },
     data: {
       ...(data.name && { name: data.name }),
-      ...(data.profile !== undefined && { profile: data.profile || null }),
-      ...(data.phone !== undefined && { phone: data.phone || null }),
-      ...(data.address !== undefined && { address: data.address || null }),
+      ...(data.profile !== undefined &&
+        data.profile !== null && { profile: data.profile }),
+      ...(data.phone !== undefined &&
+        data.phone !== null && { phone: data.phone }),
+      ...(data.address !== undefined &&
+        data.address !== null && { address: data.address }),
       ...(data.dob !== undefined && { dob: formattedDob }),
       type: targetType,
       updatedUserId: currentUser.id,

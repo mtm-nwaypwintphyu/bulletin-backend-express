@@ -1,7 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { s3Client, BUCKET_NAME } from "../config/s3";
 import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
+import fs from "fs/promises";
 import path from "path";
 
 export const uploadToS3 = async (
@@ -32,15 +32,14 @@ export const uploadToS3 = async (
       process.cwd(),
       process.env.UPLOAD_DIR || "uploads/profiles",
     );
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+
+    await fs.mkdir(uploadDir, { recursive: true });
 
     const fileExtension = file.originalname.split(".").pop();
     const fileName = `${uuidv4()}.${fileExtension}`;
     const filePath = path.join(uploadDir, fileName);
 
-    fs.writeFileSync(filePath, file.buffer);
+    await fs.writeFile(filePath, file.buffer);
 
     return `/uploads/profiles/${fileName}`;
   }

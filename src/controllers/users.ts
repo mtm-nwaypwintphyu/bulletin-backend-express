@@ -48,18 +48,11 @@ export const createUser = async (
       throw new AppError("Unauthorized", 401);
     }
 
-    let profileUrl = req.body.profile || null;
-
-    if (req.file) {
-      profileUrl = await uploadToS3(req.file);
-    }
-
     const data = {
       ...req.body,
-      profile: profileUrl,
     };
 
-    const result = await create(data, {
+    const result = await create(data, req.file, {
       id: currentUser.id,
       type: currentUser.type,
     });
