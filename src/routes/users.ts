@@ -9,7 +9,7 @@ import {
 import { authenticate } from "../middlewares/auth";
 import { validate } from "../middlewares/validate";
 import { createUserSchema, updateUserSchema } from "../validators/user";
-import { upload } from "../middlewares/upload";
+import { upload } from "../middlewares/fileUpload";
 
 const router = Router();
 

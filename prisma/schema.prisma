@@ -16,6 +16,11 @@ enum UserType {
   ADMIN
 }
 
+enum PostStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model User {
   id              Int       @id @default(autoincrement())
   name            String    @unique @db.VarChar(255)
@@ -33,6 +38,13 @@ model User {
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
 
+  postsCreated  Post[]      @relation("PostCreator")
+  postsUpdated  Post[]      @relation("PostUpdater")
+  postsDeleted  Post[]      @relation("PostDeleter")
+
+  importHistories ImportHistory[]
+  reactions       PostReaction[]
+
   @@map("users")
 }
 
@@ -43,4 +55,48 @@ model PasswordReset {
 
   @@id([email, token])
   @@map("password_resets")
+}
+
+model Post {
+  id              Int         @id @default(autoincrement())
+  title           String      @unique @db.VarChar(255)
+  description     String      @db.VarChar(255)
+  status          PostStatus  @default(ACTIVE)
+  createUserId    Int         @map("create_user_id")
+  updatedUserId   Int         @map("updated_user_id")
+  deletedUserId   Int?         @map("deleted_user_id")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  deletedAt       DateTime?   @map("deleted_at")
+
+  createUser    User        @relation("PostCreator", fields: [createUserId], references: [id])
+  updatedUser   User        @relation("PostUpdater", fields: [updatedUserId], references: [id])
+  deletedUser   User?       @relation("PostDeleter", fields: [deletedUserId], references: [id])
+
+  reactions     PostReaction[]
+  @@map("posts")
+}
+
+model ImportHistory {
+  id            Int      @id @default(autoincrement())
+  filename      String
+  totalImported Int
+  status        String   @default("SUCCESS")
+  createUserId  Int
+  createUser    User     @relation(fields: [createUserId], references: [id])
+  createdAt     DateTime @default(now())
+  @@map("import_histories")
+}
+
+model PostReaction {
+  id            Int       @id @default(autoincrement())
+  postId        Int       @map("post_id")
+  userId        Int       @map("user_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  post          Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@map("post_reactions")
 }
