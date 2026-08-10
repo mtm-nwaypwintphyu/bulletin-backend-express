@@ -4,6 +4,7 @@ type PostWithUser = Post & {
   createUser?: { name: string } | null;
   updatedUser?: { name: string } | null;
   deletedUser?: { name: string } | null;
+  _count?: { reactions: number };
 };
 
 export class PostDto {
@@ -11,6 +12,7 @@ export class PostDto {
   title: string;
   description: string;
   status: PostStatus;
+  reactionCount: number;
   createUsername: string | null;
   updatedUserName: string | null;
   deletedUserName: string | null;
@@ -23,6 +25,7 @@ export class PostDto {
     this.title = post.title;
     this.description = post.description;
     this.status = post.status;
+    this.reactionCount = post._count?.reactions ?? 0;
     this.createUsername = post.createUser?.name || null;
     this.updatedUserName = post.updatedUser?.name || null;
     this.deletedUserName = post.deletedUser?.name || null;

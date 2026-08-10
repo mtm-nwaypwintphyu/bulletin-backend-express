@@ -11,12 +11,6 @@ import { AppError } from "../utils/appError";
 import { UserType, PostStatus, Prisma } from "@prisma/client";
 import { parseCsvBuffer } from "../utils/csvHelper";
 
-// csv row data
-interface CsvRowData {
-  title: string;
-  description: string;
-}
-
 // get all posts
 export const getAll = async (
   currentUser: { id: number; type: UserType },
@@ -47,6 +41,7 @@ export const getAll = async (
       include: {
         createUser: { select: { name: true } },
         updatedUser: { select: { name: true } },
+        _count: { select: { reactions: true } },
       },
     }),
     prisma.post.count({ where }),
@@ -82,6 +77,7 @@ export const getById = async (
       createUser: { select: { name: true } },
       updatedUser: { select: { name: true } },
       deletedUser: { select: { name: true } },
+      _count: { select: { reactions: true } },
     },
   });
   if (!post) {
@@ -116,6 +112,7 @@ export const create = async (
     include: {
       createUser: { select: { name: true } },
       updatedUser: { select: { name: true } },
+      _count: { select: { reactions: true } },
     },
   });
 
@@ -165,6 +162,7 @@ export const update = async (
     include: {
       createUser: { select: { name: true } },
       updatedUser: { select: { name: true } },
+      _count: { select: { reactions: true } },
     },
   });
   return PostDto.plainToInstance(updatePost);

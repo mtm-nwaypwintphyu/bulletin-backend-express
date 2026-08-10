@@ -114,7 +114,7 @@ export const deletePost = async (
 };
 
 // post bulk insert
-export const postCsvImport = async (
+export const importPostCsv = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,
@@ -136,7 +136,7 @@ export const postCsvImport = async (
 };
 
 // post csv export
-export const postCsvExport = async (
+export const exportPostCsv = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction,

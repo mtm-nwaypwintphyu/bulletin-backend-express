@@ -5,8 +5,8 @@ import {
   getPostById,
   getPosts,
   updatePost,
-  postCsvImport,
-  postCsvExport,
+  importPostCsv,
+  exportPostCsv,
   getImportHistoryList,
   deleteImportHistory,
   getCreatedPostHistory,
@@ -25,8 +25,8 @@ router.post("/", authenticate, validate(createPostSchema), createPost);
 router.get("/", authenticate, getPosts);
 
 // csv import, export
-router.post("/import", authenticate, uploadCsv.single("posts"), postCsvImport);
-router.get("/export", authenticate, postCsvExport);
+router.post("/import", authenticate, uploadCsv.single("posts"), importPostCsv);
+router.get("/export", authenticate, exportPostCsv);
 
 // histories
 router.get("/import-histories", authenticate, getImportHistoryList);
